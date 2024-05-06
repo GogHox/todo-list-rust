@@ -11,7 +11,8 @@ pub mod structs;
 pub mod task_handler;
 pub mod task_utils;
 
-const KEEPIE_SERVER: &str = "http://localhost:8000";
+const KEEPIE_SERVER: &str = "http://localhost:8000";  // for local
+// const KEEPIE_SERVER: &str = "http://107.173.104.196:8000"; // for internet
 const CURREN_SERVER: &str = "localhost:8081";
 #[derive(Debug, Deserialize, Serialize)]
 struct Secret {
@@ -44,11 +45,14 @@ fn auth_middleware<'a>( mut req: tide::Request<()>, next: tide::Next<'a, ()>)
             let data = AppRequest {
                 receive_url: receive_url_2
             };
-            surf::post(format!("{}/sendSecretToMe", KEEPIE_SERVER))
+            match surf::post(format!("{}/sendSecretToMe", KEEPIE_SERVER))
                 .body_json(&data)
                 .unwrap()
-                .await
-                .unwrap();
+                .await {
+                Ok(_) => {}
+                Err(_) => {println!("Failed to call keepie server, {}", KEEPIE_SERVER)}
+            }
+
 
             match SESSION.lock().unwrap().get(&token) {
                 None => {
