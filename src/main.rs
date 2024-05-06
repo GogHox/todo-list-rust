@@ -11,8 +11,8 @@ pub mod structs;
 pub mod task_handler;
 pub mod task_utils;
 
-const KEEPIE_SERVER: &str = "http://localhost:8000";  // for local
-// const KEEPIE_SERVER: &str = "http://107.173.104.196:8000"; // for internet
+// const KEEPIE_SERVER: &str = "http://localhost:8000";  // for local
+const KEEPIE_SERVER: &str = "http://107.173.104.196:8000"; // for internet
 const CURREN_SERVER: &str = "localhost:8081";
 #[derive(Debug, Deserialize, Serialize)]
 struct Secret {
