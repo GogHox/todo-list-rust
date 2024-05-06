@@ -11,8 +11,8 @@ pub mod structs;
 pub mod task_handler;
 pub mod task_utils;
 
-// const KEEPIE_SERVER: &str = "http://localhost:8000";  // for local
-const KEEPIE_SERVER: &str = "http://107.173.104.196:8000"; // for internet
+const KEEPIE_SERVER: &str = "http://localhost:8000";  // for local
+// const KEEPIE_SERVER: &str = "http://107.173.104.196:8000"; // for internet
 const CURREN_SERVER: &str = "localhost:8081";
 #[derive(Debug, Deserialize, Serialize)]
 struct Secret {
@@ -45,32 +45,26 @@ fn auth_middleware<'a>( mut req: tide::Request<()>, next: tide::Next<'a, ()>)
             let data = AppRequest {
                 receive_url: receive_url_2
             };
-            match surf::post(format!("{}/sendSecretToMe", KEEPIE_SERVER))
+            if let Err(_) = surf::post(format!("{}/sendSecretToMe", KEEPIE_SERVER))
                 .body_json(&data)
                 .unwrap()
                 .await {
-                Ok(_) => {}
-                Err(_) => {println!("Failed to call keepie server, {}", KEEPIE_SERVER)}
+                println!("Failed to call keepie server, {}", KEEPIE_SERVER)
             }
 
-
-            match SESSION.lock().unwrap().get(&token) {
-                None => {
-                    std::thread::sleep(Duration::new(1, 0));
-                },
-                Some(username) => {
-                    req.append_header("username", username.to_owned());
-                    authenticated = true;
-                    break
-                }
+            if let Some(auth_user) = SESSION.lock().unwrap().get(&token) {
+                req.append_header("username", auth_user.to_owned());
+                authenticated = true;
+                break
+            } else {
+                std::thread::sleep(Duration::from_millis(500));
             }
         }
-
         if authenticated {
-            SESSION.lock().unwrap().remove(&token).expect("failed to remove session");
-            Ok(next.run(req).await)
+            if let None = SESSION.lock().unwrap().remove(&token) {};
+            return Ok(next.run(req).await);
         } else {
-            Ok(tide::Response::new(tide::StatusCode::Unauthorized))
+            return Ok(tide::Response::new(tide::StatusCode::Unauthorized));
         }
     })
 }
@@ -91,6 +85,7 @@ async fn main() -> tide::Result<()> {
     app.at("/modify_task").with(auth_middleware).post(task_handler::modify_task);
 
     app.at("/givemesecret").post( |mut req: Request<()>| async move {
+        println!("got auth");
         #[derive(Deserialize)]
         struct CredAndToken { cred: String, token: String }
         let Secret { username, password } = req.body_json().await?;
